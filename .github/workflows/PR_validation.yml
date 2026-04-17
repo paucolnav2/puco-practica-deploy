@@ -18,7 +18,7 @@ jobs:
           BRANCH_NAME="${{ github.head_ref }}"
           echo "Branch: $BRANCH_NAME"
 
-          if [[ ! "$BRANCH_NAME" =~ ^[0-9]+[-][a-zA-Z0-9]+$ ]]; then
+          if [[ ! "$BRANCH_NAME" =~ ^[0-9]+-[a-zA-Z0-9-]+$ ]]; then
             echo "Invalid branch name. Please use the format '123-feature-name'."
             exit 1
           fi
