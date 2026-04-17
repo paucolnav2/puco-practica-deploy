@@ -1,16 +1,15 @@
-FROM maven:3.9.9-eclipse-temurin-25 AS builder
+FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
 
 COPY . .
-RUN ./mvnw -DskipTests package
+RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:25-jre
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 RUN useradd -r -u 1001 appuser
-COPY --from=builder /app/target/*.jar /app/app.jar
+COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-USER appuser
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
