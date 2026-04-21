@@ -1,0 +1,73 @@
+name: Deploy to ECS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-west-1
+  ACCOUNT_ID: 822414985516
+  ECR_REPOSITORY: taller-deploy-aws-2026-repository-puco
+  ECS_CLUSTER: taller-deploy-aws-2026-cluster-puco
+  ECS_SERVICE: taller-deploy-aws-2026-task-service-puco
+  TASK_DEFINITION: taller-deploy-aws-2026-task-puco
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 🔐 AWS OIDC
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::822414985516:role/taller-deploy-aws-2026-rol-puco
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 📝 Descargar task definition actual
+      - name: Get current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition $TASK_DEFINITION \
+            --query taskDefinition > task-definition.json
+
+      # 🧹 Limpiar JSON (IMPORTANTE)
+      - name: Clean task definition
+        run: |
+          jq 'del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy
+          )' task-definition.json > new-task-definition.json
+
+      # ✏️ Reemplazar imagen (SOBRE EL LIMPIO)
+      - name: Update image in task definition
+        run: |
+          IMAGE=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+          jq --arg IMAGE "$IMAGE" \
+            '.containerDefinitions[0].image = $IMAGE' \
+            new-task-definition.json > final-task-definition.json
+
+      # 🚀 Registrar nueva revisión
+      - name: Register new task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://final-task-definition.json
+
+      # 🔄 Actualizar servicio
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --force-new-deployment
