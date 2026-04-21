@@ -37,7 +37,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::822414985516:role/taller-deploy-aws-2026-role-puco
+          role-to-assume: arn:aws:iam::822414985516:role/taller-deploy-aws-2026-rol-puco
           aws-region: ${{ env.AWS_REGION }}
 
       # =========================
